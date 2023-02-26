@@ -1,9 +1,12 @@
 # First-Concordium-Smart-Contract
-## Installing necessary tools
+## Summary
 In previous [Repo](https://github.com/JitrZ/Concordium---Setup-Development-Environment), the environment prepared for development. In this Repo
-basic steps for writing first concordium smart contract will be taken.
+basic steps for writing first concordium smart contract will be taken. A simple Concordium smart contract is created and the process is showed step by step. It's a simple voting contract. First, tools needed installed, a new project generated and the smart contract modified, compiled and tested. [Deployed as a module on testnet](https://dashboard.testnet.concordium.com/lookup/a505d0a90ca6563f876d78a013966685a79833f61381e8f754b4cdc8e3f6983d) and then [initilized a voting situation as a smart contract](https://dashboard.testnet.concordium.com/lookup/2c92d31593bb9da16672aab7f0398d09f92416d3c00d8cfcaa50ab8be5b98a14). To test it too on the testnet, the contract [updated with a vote](https://dashboard.testnet.concordium.com/lookup/47e7b7b9ba11e296311c353b0e4c477e00a914c9bd6826ee4cb7e3faadff32e4). It's checked by invoking view function from the contract to be sure it's working.
 
-First, cargo-generate tool needs to be installed. During installation, noticed that C++ build tools is necessary too. So need to install that from VS first 
+## Installing necessary tools
+
+
+First, cargo-generate tool needs to be installed to work with smart contracts and templates. During installation, noticed that C++ build tools is necessary too. So need to install that from VS first 
 and then run this command to install cargo-generate tool:
 
 `cargo install --locked cargo-generate`
@@ -19,4 +22,68 @@ By running `type cargo.toml` inside project folder on cmd, shows the configurati
 ![image](https://user-images.githubusercontent.com/41538734/220472541-14bff752-3fad-48fd-a59f-edfebe28202b.png)
 
 ## Modifying Smart Contract
+Code taken from [here](https://github.com/Concordium/voting-workshop/blob/main/smart-contract/src/lib.rs) and used for e-Democracy smart contract.
 
+## Compiling and Testing
+Compiled the new project to wasm file by `cargo concordium build -e --out ./e_democracy.wasm.v1`
+
+![image](https://user-images.githubusercontent.com/41538734/221386884-a926ae6c-7a5a-4c7c-83a6-4bb4436c0a22.png)
+
+and tested generally by `cargo concordium test`. All three tests returned OK.
+
+![image](https://user-images.githubusercontent.com/41538734/221386896-0791c817-e00f-42fe-98a0-69b61a2c9118.png)
+
+## Deploying the contract on Concordium Testnet
+Now that contract test results are ok, it's ready to get deployed on testnet with already created wallet in Task1 with the name of "ConcordiumTestnetWallet":
+
+`concordium-client --grpc-ip node.testnet.concordium.com module deploy e_democracy.wasm.v1 --sender ConcordiumTestnetWallet --name edemocracy-contract-module`
+
+![image](https://user-images.githubusercontent.com/41538734/221387667-1a0d5317-71d7-430d-a8f2-3af03e1e3ee0.png)
+
+The module deployed on testnet with the this tx hash: ***`a505d0a90ca6563f876d78a013966685a79833f61381e8f754b4cdc8e3f6983d`***
+
+![image](https://user-images.githubusercontent.com/41538734/221387790-c3a4b3a1-c11a-435b-badc-bc494ba6074a.png)
+
+## Initialize an instance of smart contract
+Module is ready and must get initialized to create a smart contract so can be used for a specific voting. A json file has been set as initial parameters like [here](https://github.com/Concordium/voting-workshop/blob/main/smart-contract/init-parameter.json).
+Here's the initial parameters used for here:
+
+```
+{
+    "description": "Which of this political parties you choose to join?",
+    "options": ["SD", "SL", "LD"],
+    "end_time": "2023-05-01T00:00:05.00Z"
+}
+```
+
+Then a smart contract initialized from the module by this command:
+
+`concordium-client --grpc-ip node.testnet.concordium.com contract init edemocracy-contract-module --contract e_democracy --parameter-json init-parameter.json --sender ConcordiumTestnetWallet --energy 10000 --name edemocracy-contract`
+
+![image](https://user-images.githubusercontent.com/41538734/221388246-cbc89bbe-fc7c-4e41-9144-bde8b76fba79.png)
+
+The contract initialized with this tx hash: ***`2c92d31593bb9da16672aab7f0398d09f92416d3c00d8cfcaa50ab8be5b98a14`***
+
+![image](https://user-images.githubusercontent.com/41538734/221388363-d6820de8-0756-4619-bc59-4381056c424d.png)
+
+## Updating the contract with a vote and Viewing the results
+Now that the edemocracy contract is on testnet, it can get updated by a vote. A json file created to send as voting parameter to the contract. Here's the *vote-parameter* used here: `"SL"`
+
+The contract get updated by running this command:
+
+`concordium-client --grpc-ip node.testnet.concordium.com contract update edemocracy-contract --entrypoint vote --parameter-json vote-parameter.json --sender ConcordiumTestnetWallet --energy 10000`
+
+![image](https://user-images.githubusercontent.com/41538734/221388797-f70df649-5a39-4459-9311-bbb967f18e56.png)
+
+It gets updated with this tx hash: ***`47e7b7b9ba11e296311c353b0e4c477e00a914c9bd6826ee4cb7e3faadff32e4`***
+
+![image](https://user-images.githubusercontent.com/41538734/221388821-b85cd457-c9e6-4375-a6bf-42eea9917d32.png)
+
+The results of voting can be viewed by invoking the view function from the contract (it's not a transaction) by this command:
+
+`concordium-client --grpc-ip node.testnet.concordium.com contract invoke edemocracy-contract --entrypoint view`
+
+![image](https://user-images.githubusercontent.com/41538734/221389026-5e8ed7ec-54d0-4d7f-ab7a-0b84e553954a.png)
+
+## Conclusion
+Here, the voting codes from the workshop used for the completion of Task2 and also the basis of the e-democracy platform on Concordium. All steps taken from generating a new project till testing the contract on testnet is shown. Next, a Dapp will be created for this contract.
